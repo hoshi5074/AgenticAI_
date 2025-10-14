@@ -24,6 +24,7 @@ import vertexai
 from vertexai.generative_models import GenerativeModel
 import asyncio
 import datetime
+from google import genai
 
 # BigQuery Setup
 bq_client = bigquery.Client()
@@ -152,6 +153,7 @@ EXAMPLES:
 - An e-commerce marketplace for sustainable products: sector = "Consumer Discretionary", stage = "Series B" (if $3M MRR)
 """
 root_agent = Agent(name="doc_ingest_agent", model="gemini-2.0-flash", instruction=instruction, tools=[process_document])
+
 
 # Question Agent
 question_agent = Agent(
@@ -285,7 +287,7 @@ Your first action MUST be calling the financial_analysis tool with the structure
 
 financial_analyst_agent = Agent(
     name="financial_analyst_agent",
-    model="gemini-2.0-flash", 
+    model="gemini-2.5-flash", 
     instruction=financial_instruction,
     tools=[financial_analysis],
 )
@@ -407,7 +409,7 @@ Formatted team_members:
 
 team_risk_agent = Agent(
     name="team_risk_agent",
-    model="gemini-2.0-flash-001",
+    model="gemini-2.5-flash",
     instruction=team_agent_instruction,
     tools=[evaluate_team_tool],
 )
@@ -512,7 +514,7 @@ Your first action MUST be calling the analyze_market_tool with the market_size_c
  
 market_analyst_agent = Agent(
     name="market_analyst_agent",
-    model="gemini-2.0-flash-exp",
+    model="gemini-2.5-flash",
     instruction=market_agent_instruction,
     tools=[analyze_market_tool],
 )

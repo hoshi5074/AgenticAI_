@@ -5,18 +5,22 @@ import re
 from typing import Dict, Any, Optional
 from datetime import datetime
 from google.cloud import bigquery
+from vertexai.generative_models import GenerativeModel
 
 class WebSearchTool:
     """Tool to search for industry benchmarks online using real APIs"""
     
     def __init__(self):
+        project_id = os.getenv("GOOGLE_CLOUD_PROJECT")
+        location = os.getenv("GOOGLE_CLOUD_LOCATION")
         self.serpapi_key = os.getenv("SERPAPI_KEY")
-        self.google_search_key = os.getenv("GOOGLE_SEARCH_API_KEY")
-        self.google_search_engine_id = os.getenv("GOOGLE_SEARCH_ENGINE_ID")
+        self.google_search_key = os.getenv("GOOGLE_SEARCH_KEY")
+        self.google_search_engine_id = os.getenv("GOOGLE_SEARCH_Engine_Id")
 
-        self.llm = ChatGoogleGenerativeAI(
-            model="gemini-1.5-pro", temperature=0.2
-        )
+        # self.llm = ChatGoogleGenerativeAI(
+        #     model="gemini-2.0-flash", temperature=0.2
+        # )
+        self.model = GenerativeModel("gemini-2.0-flash")
     
     def search_benchmarks(self, sector: str, stage: str) -> dict:
         """
@@ -438,13 +442,16 @@ class WebSearchTool:
         """
 
         try:
-            response = self.llm.invoke(prompt)
+            response = self.model.generate_content_async(prompt)
             response_text = response.content.strip()
 
             # Try parsing JSON safely
             data = json.loads(response_text)
             print("✅ LLM Extracted Benchmarks:", data)
             return data
+        except Exception as e:
+            print(f"❌ LLM extraction failed: {e}")
+            return {}
         except Exception as e:
             print(f"❌ LLM extraction failed: {e}")
             return {}
