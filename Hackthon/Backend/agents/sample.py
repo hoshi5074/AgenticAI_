@@ -725,12 +725,12 @@ async def run_parallel_agents(structured_data: Dict[str, Any], user_email: str):
     
     # Create sessions for each agent to run in parallel
     financial_session_id = f"{session_id}_financial"
-    team_session_id = f"{session_id}_team" 
-    market_session_id = f"{session_id}_market"
+    # team_session_id = f"{session_id}_team" 
+    # market_session_id = f"{session_id}_market"
 
     await session_service.create_session(app_name=app_name, user_id=user_id, session_id=financial_session_id)
-    await session_service.create_session(app_name=app_name, user_id=user_id, session_id=team_session_id)
-    await session_service.create_session(app_name=app_name, user_id=user_id, session_id=market_session_id)
+    # await session_service.create_session(app_name=app_name, user_id=user_id, session_id=team_session_id)
+    # await session_service.create_session(app_name=app_name, user_id=user_id, session_id=market_session_id)
 
 
 
@@ -738,8 +738,8 @@ async def run_parallel_agents(structured_data: Dict[str, Any], user_email: str):
     # Run all agents in parallel
     tasks = [
         run_agent_async(financial_analyst_agent, user_id, financial_session_id, content),
-        run_agent_async(team_risk_agent, user_id, team_session_id, content),
-        run_agent_async(market_analyst_agent, user_id, market_session_id, content)
+        # run_agent_async(team_risk_agent, user_id, team_session_id, content),
+        # run_agent_async(market_analyst_agent, user_id, market_session_id, content)
     ]
     
     results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -762,7 +762,7 @@ async def run_parallel_agents(structured_data: Dict[str, Any], user_email: str):
             except Exception as e:
                 logger.error(f"Error parsing {agent_name} agent result: {e}")
                 analyses[f"{agent_name}_analysis"] = {"error": "Failed to parse result"}
-    
+    print("**********************",analyses)
     return analyses
 
 async def run_agent_async(agent, user_id, session_id, content):

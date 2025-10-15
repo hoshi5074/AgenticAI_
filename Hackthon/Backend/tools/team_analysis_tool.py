@@ -15,7 +15,7 @@ logger = logging.getLogger("team_risk_tool")
 # ===== Web Search Configuration =====
 NEWSAPI_KEY = os.getenv('NEWSAPI_KEY')
 GOOGLE_SEARCH_KEY = os.getenv('GOOGLE_SEARCH_KEY')
-GOOGLE_CX = os.getenv('GOOGLE_CX')
+GOOGLE_SEARCH_Engine_Id = os.getenv('GOOGLE_SEARCH_Engine_Id')
 
 class WebSearchClient:
     """Client for web search operations"""
@@ -23,7 +23,7 @@ class WebSearchClient:
     def __init__(self):
         self.newsapi_key = NEWSAPI_KEY
         self.google_key = GOOGLE_SEARCH_KEY
-        self.google_cx = GOOGLE_CX
+        self.google_search_engine_id = GOOGLE_SEARCH_Engine_Id
         self._session = None
     
     async def get_session(self):
@@ -68,7 +68,7 @@ class WebSearchClient:
     
     async def search_person_web(self, person_name: str, company_name: str) -> List[Dict]:
         """Search for general web information about a person"""
-        if not self.google_key or not self.google_cx:
+        if not self.google_key or not self.google_search_engine_id:
             logger.warning("❌ Google Search API not configured")
             return []
         
@@ -77,7 +77,7 @@ class WebSearchClient:
             params = {
                 'q': f'"{person_name}" "{company_name}"',
                 'key': self.google_key,
-                'cx': self.google_cx,
+                'cx': self.google_search_engine_id,
                 'num': 3
             }
             
