@@ -11,13 +11,35 @@ from fastapi import HTTPException
 
 
 
-load_dotenv()
+# Load .env
+load_dotenv(dotenv_path="D:\\HackthonBy_Roop\\AgenticAI_\\Hackthon\\Backend\\.env")
+
+# Check if loaded correctly
+cred_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+print("GOOGLE_APPLICATION_CREDENTIALS:", cred_path)  # debug, remove later
+
+if cred_path is None:
+    raise RuntimeError("GOOGLE_APPLICATION_CREDENTIALS not found in environment")
+
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = cred_path
 
 # logger=logging.getLogger("google.adk").setLevel(logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-storage_client = storage.Client()
-vision_client = vision.ImageAnnotatorClient()
+def get_clients():
+    storage_client = storage.Client()
+    vision_client = vision.ImageAnnotatorClient()
+    return storage_client, vision_client
+
+storage_client, vision_client = get_clients()
+
+# load_dotenv()
+
+# # logger=logging.getLogger("google.adk").setLevel(logging.DEBUG)
+# logger = logging.getLogger(__name__)
+
+# storage_client = storage.Client()
+# vision_client = vision.ImageAnnotatorClient()
 
 
 def process_document(bucket_name: str, file_paths: list[str]) -> dict:

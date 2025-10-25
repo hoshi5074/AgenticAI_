@@ -26,10 +26,6 @@ import asyncio
 import datetime
 from google import genai
 
-# BigQuery Setup
-bq_client = bigquery.Client()
-DATASET = "StartupDetails"
-TABLE = "StartupDetails"
 
 # ===== Logging =====
 logging.basicConfig(level=logging.INFO)
@@ -235,46 +231,44 @@ You will receive structured JSON data like this:
 
 ### OUTPUT FORMAT (JSON ONLY):
 {
-  "financial_analysis": {
-    "calculated_metrics": {
-      "annual_revenue": number or null,
-      "implied_valuation": number or null, 
-      "revenue_multiple": number or null,
-      "runway_months": number or null,
-      "monthly_net_burn": number or null,
-      "ltv_cac_ratio": number or null,
-      "cac": number or null,
-      "ltv": number or null,
-      "marketing_efficiency": number or null,
-      "customer_growth_rate": number or null,
-      "arpu": number or null
+  "calculated_metrics": {
+    "annual_revenue": number or null,
+    "implied_valuation": number or null, 
+    "revenue_multiple": number or null,
+    "runway_months": number or null,
+    "monthly_net_burn": number or null,
+    "ltv_cac_ratio": number or null,
+    "cac": number or null,
+    "ltv": number or null,
+    "marketing_efficiency": number or null,
+    "customer_growth_rate": number or null,
+    "arpu": number or null
+  },
+  "industry_benchmarks": {
+    "avg_revenue_multiple": number,
+    "avg_ltv_cac_ratio": number,
+    "acceptable_burn_rate": number,
+    "typical_runway": number,
+    "seed_stage_valuation_range": {"min": number, "max": number},
+    "data_source": "string",
+    "query_context": object
+  },
+  "investment_analysis": {
+    "score_breakdown": {
+      "ltv_cac_ratio": number,
+      "valuation_range": number,
+      "runway": number,
+      "revenue_multiple": number,
+      "burn_efficiency": number,
+      "growth_traction": number,
+      "marketing_efficiency": number
     },
-    "industry_benchmarks": {
-      "avg_revenue_multiple": number,
-      "avg_ltv_cac_ratio": number,
-      "acceptable_burn_rate": number,
-      "typical_runway": number,
-      "seed_stage_valuation_range": {"min": number, "max": number},
-      "data_source": "string",
-      "query_context": object
-    },
-    "investment_analysis": {
-      "score_breakdown": {
-        "ltv_cac_ratio": number,
-        "valuation_range": number,
-        "runway": number,
-        "revenue_multiple": number,
-        "burn_efficiency": number,
-        "growth_traction": number,
-        "marketing_efficiency": number
-      },
-      "risk_factors": ["string"],
-      "strengths": ["string"],
-      "weaknesses": ["string"],
-      "final_score": number,
-      "verdict": "string",
-      "detailed_recommendation": "string"
-    }
+    "risk_factors": ["string"],
+    "strengths": ["string"],
+    "weaknesses": ["string"],
+    "final_score": number,
+    "verdict": "string",
+    "detailed_recommendation": "string"
   }
 }
 ---
@@ -292,13 +286,128 @@ financial_analyst_agent = Agent(
     tools=[financial_analysis],
 )
 
+# team_agent_instruction = """
+# You are a **Team Risk Assessment Agent** for startup evaluation.
+# You must analyze, evaluate, and assess team composition and risks based on structured startup data.
+
+# 🚨 CRITICAL RULES (MUST FOLLOW STRICTLY):
+# 1. You MUST call the `evaluate_team_tool` tool **FIRST** before generating any analysis.
+# 2. The `evaluate_team_tool` tool requires **company_name** and **team_members** parameters extracted from the structured JSON data.
+# 3. You will receive the structured JSON data from the previous agent.
+# 4. Wait for the tool response before doing any analysis.
+# 5. After receiving tool results, generate your final JSON output.
+
+# ---
+
+# ### INPUT FORMAT:
+# You will receive structured JSON data like this:
+# {
+#   "startup_name": "string",
+#   "sector": "string", 
+#   "stage": "string",
+#   "traction": {...},
+#   "financials": {...},
+#   "team": {
+#     "ceo": "string or null",
+#     "cto": "string or null",
+#     "other_key_members": ["string", "string"]
+#   },
+#   "market": {...},
+#   "product_description": "string",
+#   "document_type": "string"
+# }
+
+# ### REQUIRED ACTION:
+# 1. Extract `company_name` from the `startup_name` field in the input JSON
+# 2. Extract team members from the `team` object and format as JSON array: [{"name": "Name", "role": "Role"}, ...]
+# 3. Call `evaluate_team_tool` with the extracted company_name and formatted team_members parameters
+# 4. Wait for tool response with team analysis and risk assessment
+# 5. Generate final output using the tool results
+# ---
+
+# ### OUTPUT FORMAT (JSON ONLY):
+# {
+#   "team_analysis": {
+#     "founder_experience_score": number,
+#     "team_completeness_score": number,
+#     "technical_expertise_score": number,
+#     "industry_experience_score": number,
+#     "overall_team_score": number
+#   },
+#   "risk_assessment": {
+#     "key_risks": ["string"],
+#     "mitigation_strategies": ["string"],
+#     "risk_level": "low | medium | high",
+#     "critical_gaps": ["string"]
+#   },
+#   "strengths": {
+#     "founder_strengths": ["string"],
+#     "team_strengths": ["string"],
+#     "competitive_advantages": ["string"]
+#   },
+#   "weaknesses": {
+#     "skill_gaps": ["string"],
+#     "experience_gaps": ["string"],
+#     "operational_weaknesses": ["string"]
+#   },
+#   "recommendations": {
+#     "hiring_priorities": ["string"],
+#     "advisory_needs": ["string"],
+#     "immediate_actions": ["string"]
+#   },
+#   "benchmarks": {
+#     "ideal_team_size": number,
+#     "typical_founder_experience": "string",
+#     "industry_standards": "string"
+#   },
+#   "timestamp": "string"
+# }
+
+# ---
+
+# ### FAILSAFE INSTRUCTION:
+# If you do not call the `evaluate_team_tool` tool first, your response will be invalid.
+# DO NOT attempt to analyze the team manually - ALWAYS use the tool.
+# Your first action MUST be calling the evaluate_team_tool with the company_name and team_members extracted and formatted from the structured data you received.
+
+# ### EXTRACTION AND FORMATTING RULES:
+# - Extract `company_name` from: input_data["startup_name"]
+# - Extract team members from the `team` object and format as:
+#   [
+#     {"name": "CEO Name", "role": "CEO"},
+#     {"name": "CTO Name", "role": "CTO"},
+#     {"name": "Other Member Name", "role": "Role"}
+#   ]
+# - Handle missing team members gracefully - if a role is null, skip that entry
+# - For `other_key_members` array, create entries with appropriate roles
+# - Do not modify or interpret the extracted names - pass them exactly as they appear in the input
+
+# ### EXAMPLE TRANSFORMATION:
+# Input team data:
+# {
+#   "team": {
+#     "ceo": "Mythri Kumar",
+#     "cto": "Harish Kashyap",
+#     "other_key_members": ["Priya Sharma - CFO", "Rahul Verma - CMO"]
+#   }
+# }
+
+# Formatted team_members:
+# [
+#   {"name": "Mythri Kumar", "role": "CEO"},
+#   {"name": "Harish Kashyap", "role": "CTO"},
+#   {"name": "Priya Sharma", "role": "CFO"},
+#   {"name": "Rahul Verma", "role": "CMO"}
+# ]
+# """
+
 team_agent_instruction = """
 You are a **Team Risk Assessment Agent** for startup evaluation.
 You must analyze, evaluate, and assess team composition and risks based on structured startup data.
 
 🚨 CRITICAL RULES (MUST FOLLOW STRICTLY):
 1. You MUST call the `evaluate_team_tool` tool **FIRST** before generating any analysis.
-2. The `evaluate_team_tool` tool requires **company_name** and **team_members** parameters extracted from the structured JSON data.
+2. The `evaluate_team_tool` tool requires **structured_json** parameter containing the complete structured data.
 3. You will receive the structured JSON data from the previous agent.
 4. Wait for the tool response before doing any analysis.
 5. After receiving tool results, generate your final JSON output.
@@ -313,22 +422,16 @@ You will receive structured JSON data like this:
   "stage": "string",
   "traction": {...},
   "financials": {...},
-  "team": {
-    "ceo": "string or null",
-    "cto": "string or null",
-    "other_key_members": ["string", "string"]
-  },
+  "team": {...},
   "market": {...},
   "product_description": "string",
   "document_type": "string"
 }
 
 ### REQUIRED ACTION:
-1. Extract `company_name` from the `startup_name` field in the input JSON
-2. Extract team members from the `team` object and format as JSON array: [{"name": "Name", "role": "Role"}, ...]
-3. Call `evaluate_team_tool` with the extracted company_name and formatted team_members parameters
-4. Wait for tool response with team analysis and risk assessment
-5. Generate final output using the tool results
+1. Call `evaluate_team_tool` with the complete structured JSON data you received
+2. Wait for tool response with team analysis and risk assessment
+3. Generate final output using the tool results
 ---
 
 ### OUTPUT FORMAT (JSON ONLY):
@@ -336,7 +439,7 @@ You will receive structured JSON data like this:
   "team_analysis": {
     "founder_experience_score": number,
     "team_completeness_score": number,
-    "technical_expertise_score": number,
+    "technical_experience_score": number,
     "industry_experience_score": number,
     "overall_team_score": number
   },
@@ -374,37 +477,7 @@ You will receive structured JSON data like this:
 ### FAILSAFE INSTRUCTION:
 If you do not call the `evaluate_team_tool` tool first, your response will be invalid.
 DO NOT attempt to analyze the team manually - ALWAYS use the tool.
-Your first action MUST be calling the evaluate_team_tool with the company_name and team_members extracted and formatted from the structured data you received.
-
-### EXTRACTION AND FORMATTING RULES:
-- Extract `company_name` from: input_data["startup_name"]
-- Extract team members from the `team` object and format as:
-  [
-    {"name": "CEO Name", "role": "CEO"},
-    {"name": "CTO Name", "role": "CTO"},
-    {"name": "Other Member Name", "role": "Role"}
-  ]
-- Handle missing team members gracefully - if a role is null, skip that entry
-- For `other_key_members` array, create entries with appropriate roles
-- Do not modify or interpret the extracted names - pass them exactly as they appear in the input
-
-### EXAMPLE TRANSFORMATION:
-Input team data:
-{
-  "team": {
-    "ceo": "Mythri Kumar",
-    "cto": "Harish Kashyap",
-    "other_key_members": ["Priya Sharma - CFO", "Rahul Verma - CMO"]
-  }
-}
-
-Formatted team_members:
-[
-  {"name": "Mythri Kumar", "role": "CEO"},
-  {"name": "Harish Kashyap", "role": "CTO"},
-  {"name": "Priya Sharma", "role": "CFO"},
-  {"name": "Rahul Verma", "role": "CMO"}
-]
+Your first action MUST be calling the evaluate_team_tool with the structured data you received.
 """
 
 team_risk_agent = Agent(
@@ -517,6 +590,107 @@ market_analyst_agent = Agent(
     model="gemini-2.5-flash",
     instruction=market_agent_instruction,
     tools=[analyze_market_tool],
+)
+
+
+memo_agent_instruction = """
+You are an **Investment Memo Writer** that creates clear, concise investment summaries.
+
+## INPUT:
+You receive three analysis reports:
+1. FINANCIAL analysis with scores, metrics, and recommendations
+2. TEAM analysis with experience scores, strengths, and gaps  
+3. MARKET analysis with validation, competition, and opportunities
+
+## YOUR TASK:
+Extract ONLY the most important insights from each analysis and create a simple, easy-to-read investment memo.
+
+## OUTPUT FORMAT (JSON ONLY):
+{
+  "investment_memo": {
+    "executive_summary": {
+      "company_brief": "2-3 sentence overview",
+      "investment_rating": "STRONG BUY | BUY | HOLD | PASS",
+      "confidence_score": "0-100%",
+      "top_3_highlights": ["bullet point", "bullet point", "bullet point"],
+      "top_3_risks": ["bullet point", "bullet point", "bullet point"]
+    },
+    
+    "financial_highlights": {
+      "score": "X/10",
+      "verdict": "what financial analysis concluded",
+      "key_metrics": {
+        "monthly_revenue": "$X",
+        "growth_rate": "X%",
+        "runway": "X months", 
+        "ltv_cac_ratio": "X:1"
+      },
+      "main_strength": "one sentence",
+      "main_concern": "one sentence"
+    },
+    
+    "team_highlights": {
+      "score": "X/10", 
+      "key_strengths": ["bullet point", "bullet point"],
+      "critical_gaps": ["bullet point", "bullet point"],
+      "overall_assessment": "one sentence assessment"
+    },
+    
+    "market_highlights": {
+      "validation_confidence": "X%",
+      "market_size": "$X",
+      "competitive_landscape": "one sentence description",
+      "growth_potential": "one sentence",
+      "main_opportunity": "bullet point"
+    },
+    
+    "investment_recommendation": {
+      "decision": "INVEST | PASS | MONITOR",
+      "reason": "clear one-sentence why",
+      "next_steps": ["action 1", "action 2", "action 3"]
+    }
+  }
+}
+
+## EXTRACTION RULES:
+- Keep everything SIMPLE and CLEAR
+- Use bullet points, not paragraphs
+- Extract only the MOST IMPORTANT metrics
+- Use plain English, no jargon
+- Focus on what matters for investment decision
+- Ignore redundant or minor details
+
+## DECISION FRAMEWORK:
+STRONG BUY: Financial score >8 AND Team score >8 AND Market confidence >80%
+BUY: Financial score >7 AND Team score >7 AND Market confidence >70%  
+HOLD: Mixed signals, needs more validation
+PASS: Critical issues in any area
+
+## EXAMPLE OUTPUT:
+{
+    "executive_summary": {
+      "company_brief": "SaaS platform for e-commerce analytics serving 1,200+ merchants",
+      "investment_rating": "BUY",
+      "confidence_score": "78%",
+      "top_3_highlights": [
+        "12% monthly revenue growth for 6 months",
+        "Strong technical founding team from Amazon",
+        "$1.5B validated market with 20% annual growth"
+      ],
+      "top_3_risks": [
+        "Only 8 months of cash runway remaining",
+        "Missing marketing leadership",
+        "Highly competitive landscape"
+      ]
+    },
+    // ... rest of structure
+}
+"""
+
+memo_agent = Agent(
+    name="memo_agent",
+    model="gemini-2.5-flash",
+    instruction=memo_agent_instruction
 )
 
 # ===== Session =====
@@ -725,12 +899,12 @@ async def run_parallel_agents(structured_data: Dict[str, Any], user_email: str):
     
     # Create sessions for each agent to run in parallel
     financial_session_id = f"{session_id}_financial"
-    # team_session_id = f"{session_id}_team" 
-    # market_session_id = f"{session_id}_market"
+    team_session_id = f"{session_id}_team" 
+    market_session_id = f"{session_id}_market"
 
     await session_service.create_session(app_name=app_name, user_id=user_id, session_id=financial_session_id)
-    # await session_service.create_session(app_name=app_name, user_id=user_id, session_id=team_session_id)
-    # await session_service.create_session(app_name=app_name, user_id=user_id, session_id=market_session_id)
+    await session_service.create_session(app_name=app_name, user_id=user_id, session_id=team_session_id)
+    await session_service.create_session(app_name=app_name, user_id=user_id, session_id=market_session_id)
 
 
 
@@ -738,8 +912,8 @@ async def run_parallel_agents(structured_data: Dict[str, Any], user_email: str):
     # Run all agents in parallel
     tasks = [
         run_agent_async(financial_analyst_agent, user_id, financial_session_id, content),
-        # run_agent_async(team_risk_agent, user_id, team_session_id, content),
-        # run_agent_async(market_analyst_agent, user_id, market_session_id, content)
+        run_agent_async(team_risk_agent, user_id, team_session_id, content),
+        run_agent_async(market_analyst_agent, user_id, market_session_id, content)
     ]
     
     results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -747,23 +921,59 @@ async def run_parallel_agents(structured_data: Dict[str, Any], user_email: str):
     # Process results
     analyses = {}
     agent_names = ["financial", "team", "market"]
-    
+
     for i, result in enumerate(results):
-        agent_name = agent_names[i]
-        if isinstance(result, Exception):
-            logger.error(f"Error in {agent_name} agent: {result}")
-            analyses[f"{agent_name}_analysis"] = {"error": str(result)}
-        else:
+      agent_name = agent_names[i]
+      if isinstance(result, Exception):
+          logger.error(f"Error in {agent_name} agent: {result}")
+          analyses[f"{agent_name}_analysis"] = {"error": str(result)}
+      else:
+          try:
+              # Extract JSON from agent response
+              result_text = result.parts[0].text if result.parts else "{}"
+              cleaned_text = re.sub(r"^```json\s*|```$", "", result_text, flags=re.MULTILINE)
+              analyses[f"{agent_name}_analysis"] = json.loads(cleaned_text)
+          except Exception as e:
+              logger.error(f"Error parsing {agent_name} agent result: {e}")
+              analyses[f"{agent_name}_analysis"] = {"error": "Failed to parse result"}
+
+    # Now run the memo agent to synthesize all analyses
+    if not any("error" in analysis for analysis in analyses.values()):
+      try:
+        memo_session_id = f"{session_id}_memo"
+        await session_service.create_session(app_name=app_name, user_id=user_id, session_id=memo_session_id)
+        
+        # Prepare input for memo agent (all three analyses combined)
+        memo_input = types.Content(
+            role="user", 
+            parts=[types.Part(text=json.dumps(analyses))]
+        )
+        
+        # Run memo agent
+        memo_result = await run_agent_async(memo_agent, user_id, memo_session_id, memo_input)
+        
+        if memo_result and not isinstance(memo_result, Exception):
+            memo_text = memo_result.parts[0].text if memo_result.parts else "{}"
+            # Clean the response to extract pure JSON
+            cleaned_memo = re.sub(r"^```json\s*|```$", "", memo_text, flags=re.MULTILINE).strip()
             try:
-                # Extract JSON from agent response
-                result_text = result.parts[0].text if result.parts else "{}"
-                cleaned_text = re.sub(r"^```json\s*|```$", "", result_text, flags=re.MULTILINE)
-                analyses[f"{agent_name}_analysis"] = json.loads(cleaned_text)
-            except Exception as e:
-                logger.error(f"Error parsing {agent_name} agent result: {e}")
-                analyses[f"{agent_name}_analysis"] = {"error": "Failed to parse result"}
-    print("**********************",analyses)
+                analyses["investment_memo"] = json.loads(cleaned_memo)
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to parse memo agent JSON: {e}")
+                analyses["investment_memo"] = {"error": "Failed to parse memo output"}
+        else:
+            analyses["investment_memo"] = {"error": "Memo generation failed"}
+                
+      except Exception as e:
+          logger.error(f"Error in memo agent: {e}")
+          analyses["investment_memo"] = {"error": str(e)}
+    else:
+      # If any agent failed, create an error memo
+      analyses["investment_memo"] = {"error": "One or more analysis agents failed"}
+
+    print("********************** Final analyses with memo:", analyses)
     return analyses
+
 
 async def run_agent_async(agent, user_id, session_id, content):
     """Run an agent asynchronously and return the result"""
@@ -791,31 +1001,100 @@ async def emit_next_question(user_email):
 
         print("&&&&&&&&&&&&&&&&&&&& final_agent_analyses &&&&&&&&&&&&&&&&",agent_analyses)
         
-        # Combine all data
-        complete_record = {
-            "founder_email": user_email,
-            "structured_data": json.dumps(final_data),
-            **agent_analyses,
-            "created_at": datetime.datetime.utcnow().isoformat()
-        }
-
-        # Insert into BigQuery
-        # table_id = f"{bq_client.project}.{DATASET}.{TABLE}"
-        # try:
-        #     errors = bq_client.insert_rows_json(table_id, [complete_record])
-        #     if errors:
-        #         print("❌ BigQuery Insert Errors:", errors)
-        #     else:
-        #         print("✅ Data inserted into BigQuery")
-        # except Exception as e:
-        #     print("❌ Exception inserting into BigQuery:", e)
-
+        # Insert ALL data into BigQuery
+        insert_success = await insert_into_bigquery(user_email, final_data, agent_analyses)
+        
         # Send success message to frontend with all analyses
         await sio.emit("final_json", {
             "status": "success", 
             "message": "Startup details updated successfully",
-            "analyses": agent_analyses
+            "analyses": agent_analyses,
+            "investment_memo": agent_analyses.get("investment_memo", {}),
+            "bigquery_success": insert_success
         }, room=user_email)
+
+
+
+async def validate_and_prepare_bq_data(user_email: str, structured_data: Dict[str, Any], agent_analyses: Dict[str, Any]) -> Dict[str, Any]:
+    """Validate and prepare data for BigQuery insertion"""
+    
+    def safe_json_dumps(data):
+        """Safely convert data to JSON string, handling non-serializable types"""
+        if data is None:
+            return None
+        try:
+            return json.dumps(data, default=str)
+        except (TypeError, ValueError) as e:
+            logger.warning(f"JSON serialization warning: {e}")
+            return json.dumps({"error": "Data serialization failed"}, default=str)
+    
+    # Validate required fields
+    if not user_email:
+        raise ValueError("user_email is required")
+    
+    # Prepare the record with proper error handling
+    record = {
+        "founder_email": user_email,
+        "data": safe_json_dumps(structured_data),
+        "created_at": datetime.datetime.utcnow().isoformat(),
+        "financial_data": safe_json_dumps(agent_analyses.get("financial_analysis")),
+        "team_data": safe_json_dumps(agent_analyses.get("team_analysis")),
+        "market_data": safe_json_dumps(agent_analyses.get("market_analysis")),
+        "first_memo": safe_json_dumps(agent_analyses.get("investment_memo"))
+    }
+    
+    # Log the data being inserted (without sensitive info)
+    logger.info(f"Preparing to insert data for {user_email}")
+    logger.info(f"Data keys: {list(record.keys())}")
+    
+    return record
+
+async def insert_into_bigquery(user_email: str, structured_data: Dict[str, Any], agent_analyses: Dict[str, Any]):
+    """Insert all analysis data into BigQuery with enhanced error handling"""
+    
+    try:
+        # Prepare the data
+        record = await validate_and_prepare_bq_data(user_email, structured_data, agent_analyses)
+        
+        table_id = f"{bq_client.project}.{DATASET}.{TABLE}"
+        
+        # Insert the record
+        errors = bq_client.insert_rows_json(table_id, [record])
+        
+        if errors:
+            logger.error(f"❌ BigQuery Insert Errors: {errors}")
+            # Log more details about the error
+            for error in errors:
+                logger.error(f"Error details: {error}")
+            return False
+        else:
+            logger.info("✅ All data successfully inserted into BigQuery")
+            logger.info(f"✅ Inserted record for {user_email} with all analysis types")
+            return True
+            
+    except ValueError as ve:
+        logger.error(f"❌ Data validation error: {ve}")
+        return False
+    except Exception as e:
+        logger.error(f"❌ Exception inserting into BigQuery: {e}")
+        logger.error(f"❌ Exception type: {type(e).__name__}")
+        return False
+
+# Also, update your BigQuery table reference to be more robust:
+# At the top of your file, after the BigQuery setup:
+try:
+    bq_client = bigquery.Client()
+    DATASET = "StartupDetails"
+    TABLE = "StartupDetails"
+    
+    # Verify the table exists
+    table_id = f"{bq_client.project}.{DATASET}.{TABLE}"
+    bq_client.get_table(table_id)  # This will raise an exception if table doesn't exist
+    logger.info(f"✅ BigQuery table {table_id} is accessible")
+    
+except Exception as e:
+    logger.error(f"❌ BigQuery setup error: {e}")
+
 
 @app.on_event("startup")
 async def startup_event():

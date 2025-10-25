@@ -76,7 +76,7 @@ export default function StartupDocumentAnalyzer({ onUploadComplete }) {
       formData.append("user_email", founder_email);
 
       await axios.post(
-        "https://8000-hoshi5074-agenticai-zq6re844efe.ws-us121.gitpod.io/upload-and-analyze",
+        "http://127.0.0.1:8000/upload-and-analyze",
         formData,
         {
           headers: { "Content-Type": "multipart/form-data" },

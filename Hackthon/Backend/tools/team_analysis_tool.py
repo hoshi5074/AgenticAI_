@@ -6,7 +6,7 @@ import asyncio
 from dotenv import load_dotenv
 from typing import List, Dict, Optional,Any
 
-load_dotenv()
+load_dotenv(dotenv_path="D:\\HackthonBy_Roop\\AgenticAI_\\Hackthon\\Backend\\.env")
 
 # ===== Logging Setup =====
 logging.basicConfig(level=logging.INFO)

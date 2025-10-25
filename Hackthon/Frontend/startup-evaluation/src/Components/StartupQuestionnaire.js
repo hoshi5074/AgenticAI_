@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import io from "socket.io-client";
 
 const SOCKET_SERVER_URL =
-  "https://8000-hoshi5074-agenticai-zq6re844efe.ws-us121.gitpod.io/"; // backend
+  "http://127.0.0.1:8000/"; // backend
 
 const StartupQuestionnaire = ({ userEmail }) => {
   const [socket, setSocket] = useState(null);
